@@ -63,11 +63,40 @@ my class PseudoStash is EnumMap {
                 Metamodel::ModuleHOW.new_type(:name('OUTER')),
                 $stash);
         },
+        'LEXICAL' => sub ($cur) {
+            my $stash := nqp::clone($cur);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
+            nqp::setwho(
+                Metamodel::ModuleHOW.new_type(:name('LEXICAL')),
+                $stash);
+        },
+        'OUTERS' => sub ($cur) {
+            my Mu $ctx := nqp::ctxouterskipthunks(
+                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
+            my $stash := nqp::create(PseudoStash);
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
+            nqp::setwho(
+                Metamodel::ModuleHOW.new_type(:name('OUTER')),
+                $stash);
+        },
         'DYNAMIC' => sub ($cur) {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN);
             nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('DYNAMIC')),
+                $stash);
+        },
+        'CALLERS' => sub ($cur) {
+            my Mu $ctx := nqp::ctxcallerskipthunks(
+                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
+            my $stash := nqp::create(PseudoStash);
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
+            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN +| REQUIRE_DYNAMIC);
+            nqp::setwho(
+                Metamodel::ModuleHOW.new_type(:name('CALLER')),
                 $stash);
         },
         'UNIT' => sub ($cur) {
@@ -105,10 +134,9 @@ my class PseudoStash is EnumMap {
                 '$?PACKAGE')
         };
 
-    multi method at_key(PseudoStash:D: $key is copy) is rw {
-        $key = $key.Str;
+    multi method AT-KEY(PseudoStash:D: Str() $key) is rw {
         my Mu $nkey := nqp::unbox_s($key);
-        if %pseudoers.exists_key($key) {
+        if %pseudoers.EXISTS-KEY($key) {
             %pseudoers{$key}(self)
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
@@ -139,9 +167,8 @@ my class PseudoStash is EnumMap {
         }
     }
 
-    method bind_key($key is copy, \value) {
-        $key = $key.Str;
-        if %pseudoers.exists_key($key) {
+    method BIND-KEY(Str() $key, \value) is rw {
+        if %pseudoers.EXISTS-KEY($key) {
             X::Bind.new(target => "pseudo-package $key").throw;
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
@@ -156,9 +183,8 @@ my class PseudoStash is EnumMap {
         }
     }
     # for some reason we get a ambiguous dispatch error by making this a multi
-    method exists_key(PseudoStash:D: $key is copy) {
-        $key = $key.Str;
-        if %pseudoers.exists_key($key) {
+    method EXISTS-KEY(PseudoStash:D: Str() $key) {
+        if %pseudoers.EXISTS-KEY($key) {
             True
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {

@@ -67,24 +67,61 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj) {
 
 my native long     is Int is ctype("long")     is repr("P6int")    is export(:types, :DEFAULT) { };
 my native longlong is Int is ctype("longlong") is repr("P6int")    is export(:types, :DEFAULT) { };
-my class void                                  is repr('CPointer') is export(:types, :DEFAULT) { };
+my class void                                  is repr('Uninstantiable') is export(:types, :DEFAULT) { };
+# Expose a Pointer class for working with raw pointers.
 my class Pointer                               is repr('CPointer') is export(:types, :DEFAULT) { };
 
 # need to introduce the roles in there in an augment, because you can't
 # inherit from types that haven't been properly composed.
-use MONKEY_TYPING;
+use MONKEY-TYPING;
 augment class Pointer {
-    my role TypedPointer[::TValue = void] is Pointer is repr('CPointer') {
-        method of() { ::TValue }
-        method deref(::?CLASS:D \ptr:) { nativecast(::TValue, ptr) }
+    method of() { void }
+
+    method ^name($) { 'Pointer' }
+
+    multi method new() {
+        self.CREATE()
     }
-    multi method PARAMETERIZE_TYPE(Mu:U \t) {
+    multi method new(int $addr) {
+        nqp::box_i($addr, ::?CLASS)
+    }
+    multi method new(Int $addr) {
+        nqp::box_i(nqp::unbox_i(nqp::decont($addr)), ::?CLASS)
+    }
+
+    method Numeric(::?CLASS:D:) { self.Int }
+    method Int(::?CLASS:D:) {
+        nqp::p6box_i(nqp::unbox_i(nqp::decont(self)))
+    }
+
+    method deref(::?CLASS:D \ptr:) { nativecast(void, ptr) }
+
+    multi method gist(::?CLASS:U:) { '(' ~ self.^name ~ ')' }
+    multi method gist(::?CLASS:D:) {
+        if self.Int -> $addr {
+            self.^name ~ '<' ~ $addr.fmt('%#x') ~ '>'
+        }
+        else {
+            self.^name ~ '<NULL>'
+        }
+    }
+
+    multi method perl(::?CLASS:U:) { self.^name }
+    multi method perl(::?CLASS:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
+
+    my role TypedPointer[::TValue = void] is Pointer is repr('CPointer') {
+        method of() { TValue }
+        # method ^name($obj) { 'Pointer[' ~ TValue.^name ~ ']' }
+        method deref(::?CLASS:D \ptr:) { nativecast(TValue, ptr) }
+    }
+    method ^parameterize($, Mu:U \t) {
         die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t ~~ Int || t ~~ Num || t === Str || t.REPR eq 'CStruct' | 'CUnion' | 'CPPStruct' | 'CPointer' | 'CArray';
+            unless t ~~ Int || t ~~ Num || t === Str || t === void || t.REPR eq 'CStruct' | 'CUnion' | 'CPPStruct' | 'CPointer' | 'CArray';
         my \typed := TypedPointer[t];
-        typed.HOW.make_pun(typed);
+        typed.^make_pun;
     }
 }
+my constant OpaquePointer is export(:types, :DEFAULT) = Pointer;
 
 # Gets the NCI type code to use based on a given Perl 6 type.
 my %type_map =
@@ -162,7 +199,7 @@ my role Native[Routine $r, Str $libname] {
     has native_callsite $!call is box_target;
     has Mu $!rettype;
     
-    method postcircumfix:<( )>(|args) {
+    method invoke(|args) {
         unless $!setup {
             my Mu $arg_info := param_list_for($r.signature);
             my str $conv = self.?native_call_convention || '';
@@ -189,45 +226,17 @@ my role NativeCallEncoded[$name] {
     method native_call_encoded() { $name };
 }
 
-# Expose an OpaquePointer class for working with raw pointers.
-my class OpaquePointer is export(:types, :DEFAULT) is repr('CPointer') {
-    multi method new() {
-        self.CREATE()
-    }
-    multi method new(int $addr) {
-        nqp::box_i($addr, OpaquePointer)
-    }
-    multi method new(Int $addr) {
-        nqp::box_i(nqp::unbox_i(nqp::decont($addr)), OpaquePointer)
-    }
-    method Int(OpaquePointer:D:) {
-        nqp::p6box_i(nqp::unbox_i(nqp::decont(self)))
-    }
-    method Numeric(OpaquePointer:D:) { self.Int }
-    multi method gist(OpaquePointer:U:) { '(OpaquePointer)' }
-    multi method gist(OpaquePointer:D:) {
-        if self.Int -> $addr {
-            'OpaquePointer<' ~ $addr.fmt('%#x') ~ '>'
-        }
-        else {
-            'OpaquePointer<NULL>'
-        }
-    }
-    multi method perl(OpaquePointer:U:) { 'OpaquePointer' }
-    multi method perl(OpaquePointer:D:) { 'OpaquePointer.new(' ~ self.Int ~ ')' }
-}
-
 # CArray class, used to represent C arrays.
-my class CArray is export(:types, :DEFAULT) is repr('CArray') is array_type(OpaquePointer) { };
+my class CArray is export(:types, :DEFAULT) is repr('CArray') is array_type(Pointer) { };
 
 # need to introduce the roles in there in an augment, because you can't 
 # inherit from types that haven't been properly composed.
-use MONKEY_TYPING;
+use MONKEY-TYPING;
 augment class CArray {
-    method at_pos(CArray:D: $pos) { die "CArray cannot be used without a type" }
+    method AT-POS(CArray:D: $pos) { die "CArray cannot be used without a type" }
     
     my role IntTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_i(nqp::atpos_i(nqp::decont(arr), nqp::unbox_i($pos.Int)))
@@ -237,7 +246,7 @@ augment class CArray {
                     self
                 }
         }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_i(nqp::atpos_i(nqp::decont(arr), $pos))
@@ -247,26 +256,22 @@ augment class CArray {
                     self
                 }
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, Int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, Int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_i($assignee));
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, Int $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, nqp::unbox_i($assignee));
         }
     }
-    multi method PARAMETERIZE_TYPE(Int:U $t) {
-        my \typed := IntTypedCArray[$t.WHAT];
-        typed.HOW.make_pun(typed);
-    }
     
     my role NumTypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_n(nqp::atpos_n(nqp::decont(arr), nqp::unbox_i($pos.Int)))
@@ -276,7 +281,7 @@ augment class CArray {
                     self
                 }
         }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::p6box_n(nqp::atpos_n(nqp::decont(arr), $pos))
@@ -286,26 +291,22 @@ augment class CArray {
                     self
                 }
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), $pos, $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, Num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, Num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_n($assignee));
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, Num $assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), $pos, nqp::unbox_n($assignee));
         }
     }
-    multi method PARAMETERIZE_TYPE(Num:U $t) {
-        my \typed := NumTypedCArray[$t.WHAT];
-        typed.HOW.make_pun(typed);
-    }
     
     my role TypedCArray[::TValue] does Positional[TValue] is CArray is repr('CArray') is array_type(TValue) {
-        multi method at_pos(::?CLASS:D \arr: $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::atpos(nqp::decont(arr), nqp::unbox_i($pos.Int))
@@ -315,7 +316,7 @@ augment class CArray {
                     self
                 }
         }
-        multi method at_pos(::?CLASS:D \arr: int $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::atpos(nqp::decont(arr), $pos)
@@ -325,26 +326,35 @@ augment class CArray {
                     self
                 }
         }
-        multi method assign_pos(::?CLASS:D \arr: int $pos, \assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, \assignee) {
             nqp::bindpos(nqp::decont(arr), $pos, nqp::decont(assignee));
         }
-        multi method assign_pos(::?CLASS:D \arr: Int $pos, \assignee) {
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, \assignee) {
             nqp::bindpos(nqp::decont(arr), nqp::unbox_i($pos), nqp::decont(assignee));
         }
     }
-    multi method PARAMETERIZE_TYPE(Mu:U \t) {
-        die "A C array can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
-            unless t === Str || t.REPR eq 'CStruct' | 'CPointer' | 'CArray';
-        my \typed := TypedCArray[t];
-        typed.HOW.make_pun(typed);
+    method ^parameterize($, Mu:U \t) {
+        my $typed;
+        if t ~~ Int {
+            $typed := IntTypedCArray[t.WHAT];
+        }
+        elsif t ~~ Num {
+            $typed := NumTypedCArray[t.WHAT];
+        }
+        else {
+            die "A C array can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
+                unless t === Str || t.REPR eq 'CStruct' | 'CPointer' | 'CArray';
+            $typed := TypedCArray[t];
+        }
+        $typed.^make_pun();
     }
 }
 
 multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is export(:DEFAULT, :types) {
-    $pos ~~ Iterable ?? $pos.map: { array.at_pos($_) } !! array.at_pos($pos);
+    $pos ~~ Iterable ?? $pos.map: { array.AT-POS($_) } !! array.AT-POS($pos);
 }
 multi sub postcircumfix:<[ ]>(CArray:D \array, *@pos) is export(:DEFAULT, :types) {
-    @pos.map: { array.at_pos($_) };
+    @pos.map: { array.AT-POS($_) };
 }
 
 

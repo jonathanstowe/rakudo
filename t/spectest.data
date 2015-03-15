@@ -92,6 +92,7 @@ S02-types/autovivification.t
 S02-types/bag.t
 S02-types/baghash.t
 S02-types/bool.t
+S02-types/built-in.t
 S02-types/capture.t
 S02-types/catch_type_cast_mismatch.t
 S02-types/declare.t
@@ -360,6 +361,7 @@ S05-modifier/counted.t
 S05-modifier/global.t
 S05-modifier/ignorecase.t
 S05-modifier/ii.t
+S05-modifier/my.t
 S05-modifier/overlapping.t
 S05-modifier/perl5_0.t
 S05-modifier/perl5_1.t
@@ -412,10 +414,13 @@ S06-other/main.t
 S06-other/main-usage.t
 S06-other/main-semicolon.t
 S06-other/misc.t
+S06-other/pairs-as-lvalues.t
 S06-routine-modifiers/lvalue-subroutines.t
+S06-routine-modifiers/native-lvalue-subroutines.t
 S06-routine-modifiers/proxy.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
+S06-signature/caller-param.t
 S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
 S06-signature/code.t
@@ -445,11 +450,14 @@ S06-signature/types.t
 S06-signature/unpack-array.t
 S06-signature/unpack-object.t
 S06-signature/unspecified.t
+S06-traits/as.t
 S06-traits/is-assoc.t
 S06-traits/is-copy.t
 S06-traits/is-readonly.t
 S06-traits/is-rw.t
 S06-traits/misc.t
+S06-traits/native-is-copy.t
+S06-traits/native-is-rw.t
 S06-traits/precedence.t
 S06-traits/slurpy-is-rw.t
 S09-autovivification/autoincrement.t
@@ -459,6 +467,10 @@ S09-subscript/slice.t
 S09-subscript/multidim-assignment.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
+S09-typed-arrays/native.t
+S09-typed-arrays/native-decl.t
+S09-typed-arrays/native-int.t
+S09-typed-arrays/native-num.t
 S10-packages/basic.t
 S10-packages/joined-namespaces.t
 S10-packages/precompilation.t
@@ -479,6 +491,7 @@ S12-attributes/delegation.t
 S12-attributes/inheritance.t
 S12-attributes/instance.t
 S12-attributes/mutators.t
+S12-attributes/native.t
 S12-attributes/recursive.t
 S12-attributes/undeclared.t
 S12-class/anonymous.t
@@ -582,6 +595,7 @@ S14-traits/attributes.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
+S15-string-types/Str.t
 S15-unicode-information/uniname.t	# moar
 S15-unicode-information/unimatch-general.t	# moar
 S15-unicode-information/unival.t	# moar
@@ -605,10 +619,10 @@ S16-io/tmpdir.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
 S17-channel/earliest.t
-# S17-lowlevel/lock.t
+S17-lowlevel/lock.t
 S17-lowlevel/thread.t
 S17-procasync/basic.t    # moar
-# S17-procasync/print.t    # moar
+S17-procasync/print.t    # moar
 # S17-procasync/kill.t     # moar
 S17-promise/allof.t
 S17-promise/anyof.t
@@ -631,7 +645,7 @@ S17-supply/delayed.t
 S17-supply/do.t
 S17-supply/elems.t
 S17-supply/flat.t
-S17-supply/for.t
+S17-supply/from-list.t
 S17-supply/grab.t
 S17-supply/grep.t
 S17-supply/interval.t
@@ -645,11 +659,12 @@ S17-supply/migrate.t
 S17-supply/min.t
 S17-supply/minmax.t
 S17-supply/on.t
+S17-supply/on-demand.t
 S17-supply/Promise.t
 S17-supply/reduce.t
 S17-supply/reverse.t
 S17-supply/rotor.t
-S17-supply/schedule_on.t
+S17-supply/schedule-on.t
 S17-supply/sort.t
 S17-supply/squish.t
 S17-supply/stable.t
@@ -716,6 +731,7 @@ S32-array/shift.t
 S32-array/splice.t
 S32-array/unshift.t
 S32-basics/warn.t
+S32-basics/xxKEY.t
 S32-container/roundrobin.t
 S32-container/stringify.t
 S32-container/zip.t

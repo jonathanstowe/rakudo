@@ -154,7 +154,7 @@ my class Parameter { # declared in BOOTSTRAP
     multi method perl(Parameter:D:) {
         my $perl = '';
         my $rest = '';
-        my $type = $!nominal_type.HOW.name($!nominal_type);
+        my $type = $!nominal_type.^name;
         my $truemu='';
 
         # XXX Need a CODE_SIGIL too?
@@ -183,17 +183,17 @@ my class Parameter { # declared in BOOTSTRAP
             }
         } else {
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
-            $name = '|';
+                $name = '|';
             } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
-            $name = '\\';
+                $name = '\\';
             } elsif $!flags +& $SIG_ELEM_ARRAY_SIGIL {
-            $name = '@';
+                $name = '@';
             } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
-            $name = '%';
+                $name = '%';
             } elsif $type ~~ /^^ Callable >> / {
-            $name = '&';
+                $name = '&';
             } else {
-            $name = '$';
+                $name = '$';
             }
         }
         my $default = self.default();
