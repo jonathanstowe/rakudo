@@ -2567,7 +2567,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $*SOFT {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
             }
-            elsif !nqp::can($code, 'invoke') && !nqp::can($code, 'postcircumfix:<( )>') {
+            elsif !nqp::can($code, 'CALL-ME') && !nqp::can($code, 'postcircumfix:<( )>') {
                 my $phasers :=
                   nqp::getattr($code,$*W.find_symbol(['Block']),'$!phasers');
                 if nqp::isnull($phasers) || !nqp::p6bool($phasers) {
@@ -4202,12 +4202,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub make_yada($name, $/) {
-            my $past := $<args>.ast;
-            $past.name($name);
-            $past.node($/);
-            unless +$past.list() {
+        my $past := $<args>.ast;
+        $past.name($name);
+        $past.node($/);
+        unless +$past.list() {
             $past.push($*W.add_string_constant('Stub code executed'));
-            }
+        }
         $past
     }
 
@@ -5704,13 +5704,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method hexint($/) { make string_to_bigint( $/, 16); }
     method octint($/) { make string_to_bigint( $/, 8 ); }
     method binint($/) { make string_to_bigint( $/, 2 ); }
-
-
-    method number:sym<complex>($/) {
-        my $re := $*W.add_constant('Num', 'num', 0e0);
-        my $im := $*W.add_constant('Num', 'num', +~$<im>);
-        make $*W.add_constant('Complex', 'type_new', $re.compile_time_value, $im.compile_time_value);
-    }
 
     method number:sym<numish>($/) {
         make $<numish>.ast;

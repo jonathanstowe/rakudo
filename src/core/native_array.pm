@@ -32,17 +32,32 @@ class array is Iterable is repr('VMArray') {
         }
 
         multi method STORE(array:D: $value) {
-            nqp::setelems(self, 0);
+            nqp::setelems(self, 1);
             nqp::bindpos_i(self, 0, nqp::unbox_i($value));
             self
         }
         multi method STORE(array:D: @values) {
-            nqp::setelems(self, 0);
             my int $i = 0;
             my int $n = @values.elems;
+            nqp::setelems(self, $n);
             while $i < $n {
                 nqp::bindpos_i(self, $i, nqp::unbox_i(@values.AT-POS($i)));
                 $i = $i + 1;
+            }
+            self
+        }
+        multi method STORE(array:D: Range:D $range) {
+            my int $val = $range.min;
+            $val = $val + 1 if $range.excludes-min;
+            my int $max = $range.max;
+            $max = $max - 1 if $range.excludes-max;
+            nqp::setelems(self, $max - $val + 1);
+
+            my int $i;
+            while $val <= $max {
+                nqp::bindpos_i(self, $i, $val);
+                $val = $val + 1;
+                $i   = $i   + 1;
             }
             self
         }
@@ -136,7 +151,7 @@ class array is Iterable is repr('VMArray') {
                 $!array := nqp::decont($array);
             }
 
-            method reify($n, :$sink) {
+            method reify($n) {   # :$sink is not needed here
                 unless nqp::isconcrete($!reified) {
                     my $rpa := nqp::list();
                     my int $i = $!idx;
@@ -202,17 +217,34 @@ class array is Iterable is repr('VMArray') {
         }
 
         multi method STORE(array:D: $value) {
-            nqp::setelems(self, 0);
+            nqp::setelems(self, 1);
             nqp::bindpos_n(self, 0, nqp::unbox_n($value));
             self
         }
         multi method STORE(array:D: @values) {
-            nqp::setelems(self, 0);
             my int $i = 0;
             my int $n = @values.elems;
+            nqp::setelems(self, $n);
             while $i < $n {
                 nqp::bindpos_n(self, $i, nqp::unbox_n(@values.AT-POS($i)));
                 $i = $i + 1;
+            }
+            self
+        }
+        multi method STORE(array:D: Range:D $range) {
+            my num $val = $range.min;
+            $val = $val + 1 if $range.excludes-min;
+            my num $max = $range.max;
+            $max = $max - 1 if $range.excludes-max;
+            fail X::Cannot::Infinite.new(:action<initialize>,:what(self.^name))
+              if $val == -Inf || $max == Inf;
+
+            nqp::setelems(self, ($max - $val + 1).Int );
+            my int $i;
+            while $val <= $max {
+                nqp::bindpos_n(self, $i, $val);
+                $val = $val + 1;
+                $i   = $i   + 1;
             }
             self
         }
@@ -348,14 +380,15 @@ class array is Iterable is repr('VMArray') {
     }
 
     method ^parameterize(Mu:U \arr, Mu:U \t) {
-        my int $kind = nqp::objprimspec(t);
+        my $t := nqp::decont(t);
+        my int $kind = nqp::objprimspec($t);
         if $kind == 1 {
-            my $what := arr.^mixin(intarray[t]);
+            my $what := arr.^mixin(intarray[$t]);
             $what.^set_name("{arr.^name}[{t.^name}]");
             $what;
         }
         elsif $kind == 2 {
-            my $what := arr.^mixin(numarray[t]);
+            my $what := arr.^mixin(numarray[$t]);
             $what.^set_name("{arr.^name}[{t.^name}]");
             $what;
         }

@@ -198,7 +198,12 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                         last if $value ~~ $endpoint;
                     }
                     $tail.push($value);
-                    take $value;
+                    if $value {
+                        take flat $value;
+                    }
+                    else { ## special case for returning ()
+                        take $value;
+                    }
                 }
             }
             elsif $badseq {
