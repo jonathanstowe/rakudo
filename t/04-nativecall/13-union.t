@@ -30,8 +30,12 @@ class MyStruct is repr('CStruct') {
     }
 }
 
-sub ReturnMyStruct() returns MyStruct is native('./13-union') { * }
-sub SizeofMyStruct() returns int32    is native('./13-union') { * }
+sub ReturnMyStruct()   returns MyStruct is native('./13-union') { * }
+sub SizeofMyStruct()   returns int32    is native('./13-union') { * }
+sub SetLongMyStruct(MyStruct)           is native('./13-union') { * }
+sub SetIntMyStruct(MyStruct)            is native('./13-union') { * }
+sub SetShortMyStruct(MyStruct)          is native('./13-union') { * }
+sub SetCharMyStruct(MyStruct)           is native('./13-union') { * }
 
 is nativesizeof(MyStruct), SizeofMyStruct(), 'sizeof(MyStruct)';
 
@@ -52,10 +56,17 @@ is_approx $cobj.num,    4.2e0,  'getting num from C-created struct';
 is $cobj.byte,          13,     'getting int8 from C-created struct';
 is_approx $cobj.float, -6.28e0, 'getting num32 from C-created struct';
 
-is $cobj.onion.l, 1 +< 30 +| 1 +< 14 +| 1 +< 6, 'long in union';
-is $cobj.onion.i, 1 +< 30 +| 1 +< 14 +| 1 +< 6, 'int in union';
-is $cobj.onion.s, 1 +< 14 +| 1 +< 6,            'short in union';
-is $cobj.onion.c, 1 +< 6,                       'char in union';
+SetLongMyStruct($cobj);
+is $cobj.onion.l, 1 +< 30, 'long in union';
+
+SetIntMyStruct($cobj);
+is $cobj.onion.i, 1 +< 27, 'int in union';
+
+SetShortMyStruct($cobj);
+is $cobj.onion.s, 1 +< 13, 'short in union';
+
+SetCharMyStruct($cobj);
+is $cobj.onion.c, 1 +< 6,  'char in union';
 
 class MyStruct2 is repr('CStruct') {
     has long           $.long;
@@ -74,6 +85,10 @@ class MyStruct2 is repr('CStruct') {
 
 sub ReturnMyStruct2() returns MyStruct2 is native('./13-union') { * }
 sub SizeofMyStruct2() returns int32     is native('./13-union') { * }
+sub SetLongMyUnion(Onion)               is native('./13-union') { * }
+sub SetIntMyUnion(Onion)                is native('./13-union') { * }
+sub SetShortMyUnion(Onion)              is native('./13-union') { * }
+sub SetCharMyUnion(Onion)               is native('./13-union') { * }
 
 is nativesizeof(MyStruct2), SizeofMyStruct2(), 'sizeof(MyStruct2)';
 
@@ -86,9 +101,17 @@ is $cobj2.byte,          13,     'getting int8 from C-created struct';
 is_approx $cobj2.float, -6.28e0, 'getting num32 from C-created struct';
 
 my $onion = $cobj2.onion.deref;
-is $onion.l, 1 +< 30 +| 1 +< 14 +| 1 +< 6, 'long in union*';
-is $onion.i, 1 +< 30 +| 1 +< 14 +| 1 +< 6, 'int in union*';
-is $onion.s, 1 +< 14 +| 1 +< 6,            'short in union*';
-is $onion.c, 1 +< 6,                       'char in union*';
+
+SetLongMyUnion($onion);
+is $onion.l, 1 +< 30, 'long in union*';
+
+SetIntMyUnion($onion);
+is $onion.i, 1 +< 27, 'int in union*';
+
+SetShortMyUnion($onion);
+is $onion.s, 1 +< 13, 'short in union*';
+
+SetCharMyUnion($onion);
+is $onion.c, 1 +< 6,  'char in union*';
 
 # vim:ft=perl6

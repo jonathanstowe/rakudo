@@ -27,17 +27,28 @@ DLLEXPORT int SizeofMyStruct() {
     return sizeof(MyStruct);
 }
 
+DLLEXPORT void SetLongMyStruct(MyStruct *obj) {
+    obj->vegval.l = 1 << 30;
+}
+
+DLLEXPORT void SetIntMyStruct(MyStruct *obj) {
+    obj->vegval.i = 1 << 27;
+}
+
+DLLEXPORT void SetShortMyStruct(MyStruct *obj) {
+    obj->vegval.s = 1 << 13;
+}
+
+DLLEXPORT void SetCharMyStruct(MyStruct *obj) {
+    obj->vegval.c = 1 << 6;
+}
+
 DLLEXPORT MyStruct *ReturnMyStruct() {
     MyStruct *obj = (MyStruct *)malloc(sizeof(MyStruct));
     obj->intval   = 17;
     obj->numval   = 4.2;
     obj->byteval  = 13;
-
     obj->vegval.l = 0;
-    obj->vegval.i = 1 << 30;
-    obj->vegval.s = 1 << 14;
-    obj->vegval.c = 1 << 6;
-
     obj->floatval = -6.28;
 
     return obj;
@@ -54,6 +65,22 @@ typedef struct {
 
 DLLEXPORT int SizeofMyStruct2() {
     return sizeof(MyStruct2);
+}
+
+DLLEXPORT void SetLongMyUnion(onion *obj) {
+    obj->l = 1 << 30;
+}
+
+DLLEXPORT void SetIntMyUnion(onion *obj) {
+    obj->i = 1 << 27;
+}
+
+DLLEXPORT void SetShortMyUnion(onion *obj) {
+    obj->s = 1 << 13;
+}
+
+DLLEXPORT void SetCharMyUnion(onion *obj) {
+    obj->c = 1 << 6;
 }
 
 DLLEXPORT MyStruct2 *ReturnMyStruct2() {
