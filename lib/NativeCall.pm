@@ -141,6 +141,7 @@ my %repr_map =
     'CStruct'   => 'cstruct',
     'CPointer'  => 'cpointer',
     'CArray'    => 'carray',
+    'CUnion'    => 'cunion',
     'VMArray'   => 'vmarray',
     ;
 sub type_code_for(Mu ::T) {
