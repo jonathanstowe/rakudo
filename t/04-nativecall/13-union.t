@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 22;
+plan 23;
 
 compile_test_lib('13-union');
 
@@ -14,6 +14,8 @@ class Onion is repr('CUnion') {
     has uint16 $.s;
     has uint8  $.c;
 }
+
+is nativesizeof(Onion), nativesizeof(long), 'sizeof union is sizeof biggest member';
 
 class MyStruct is repr('CStruct') {
     has long  $.long;
