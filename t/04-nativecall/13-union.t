@@ -21,7 +21,7 @@ class MyStruct is repr('CStruct') {
     has long  $.long;
     has num64 $.num;
     has int8  $.byte;
-    has Onion $.onion;
+    has Onion $.onion is inlined;
     has num32 $.float;
 
     method init() {
@@ -71,11 +71,11 @@ SetCharMyStruct($cobj);
 is $cobj.onion.c, 1 +< 6,  'char in union';
 
 class MyStruct2 is repr('CStruct') {
-    has long           $.long;
-    has num64          $.num;
-    has int8           $.byte;
-    has Pointer[Onion] $.onion;
-    has num32          $.float;
+    has long  $.long;
+    has num64 $.num;
+    has int8  $.byte;
+    has Onion $.onion;
+    has num32 $.float;
 
     method init() {
         $!long = 42;
@@ -102,7 +102,7 @@ is_approx $cobj2.num,    4.2e0,  'getting num from C-created struct';
 is $cobj2.byte,          13,     'getting int8 from C-created struct';
 is_approx $cobj2.float, -6.28e0, 'getting num32 from C-created struct';
 
-my $onion = $cobj2.onion.deref;
+my $onion = $cobj2.onion;
 
 SetLongMyUnion($onion);
 is $onion.l, 1 +< 30, 'long in union*';
